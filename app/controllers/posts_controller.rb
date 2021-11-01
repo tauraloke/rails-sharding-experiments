@@ -1,23 +1,33 @@
 class PostsController < ApplicationController
+    before_action :set_shard
+
     def new
     end
 
     def create
-        @post = Post.using_shard(:shard_group1, :shard1).new(params[:post].permit(:title, :text))
-       
-        @post.save
-        redirect_to @post
+        Rails::Sharding.using_shard(@shard_group, @shard) do
+            @post = Post.new(params[:post].permit(:title, :text))
+        
+            @post.save
+            redirect_to @post
+        end
       end
 
       def show
-        @post = Post.using_shard(:shard_group1, :shard1).find(params[:id])
+        @post = Post.using_shard(@shard_group, @shard).find(params[:id])
       end
 
       def index
-        @posts = Post.using_shard(:shard_group1, :shard1).all
+        puts @shard_group
+        @posts = Post.using_shard(@shard_group, @shard).all
       end
        
       private
+        def set_shard
+            @shard_group = :shard_group1
+            @shard = :shard2
+        end
+
         def post_params
           params.require(:post).permit(:title, :text)
         end
